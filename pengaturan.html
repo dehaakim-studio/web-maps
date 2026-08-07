@@ -401,7 +401,7 @@
         <button class="btn-delete" onclick="document.getElementById('existing-sheet-url').value=''">Hapus</button>
       </div>
 
-      <button class="btn-process" id="btn-existing" onclick="generateExistingCode()">Membaca Column Header yang sedang digunakan</button>
+      <button class="btn-process" id="btn-existing" onclick="generateExistingCode()">Membaca Dokumen & Sheet yang digunakan</button>
       <button class="btn-process" onclick="closeSettings()" style="background-color: #334155; color: white; margin-top: 10px;">🏠 Kembali ke Menu Utama</button>
     </div>
 
@@ -624,11 +624,7 @@ function doGet(e) {
       const code = document.getElementById('code-output').textContent;
       navigator.clipboard.writeText(code).then(() => {
         showToast('Code.gs berhasil disalin ke clipboard!');
-        if (document.querySelector('input[name="mode"]:checked').value === 'new') {
-          document.getElementById('print-columns-section').style.display = 'flex';
-        } else {
-          document.getElementById('print-columns-section').style.display = 'none';
-        }
+        document.getElementById('print-columns-section').style.display = 'flex';
       }).catch(err => {
         showToast('Gagal menyalin code.', 'error');
       });
@@ -752,6 +748,22 @@ function doGet(e) {
       }
       
       output = { status: 'success', message: 'Data berhasil ditambahkan' };
+    }
+    else if (action === 'createHeaders') {
+      var sheetName = payload.sheetName;
+      var headers = payload.headers;
+      var sheet = ss.getSheetByName(sheetName);
+      
+      if (!sheet) throw new Error("Sheet '" + sheetName + "' tidak ditemukan.");
+      
+      if (sheet.getLastRow() === 0) {
+        sheet.appendRow(headers);
+        sheet.getRange(1, 1, 1, headers.length).setFontWeight("bold").setBackground("#e0e0e0");
+      } else {
+        sheet.getRange(1, 1, 1, headers.length).setValues([headers]).setFontWeight("bold").setBackground("#e0e0e0");
+      }
+      
+      output = { status: 'success', message: 'Kolom berhasil dicetak' };
     }
   } catch (error) {
     output = { status: 'error', message: error.toString() };
