@@ -433,8 +433,12 @@
         <button class="btn-delete" onclick="document.getElementById('setup-url-input').value=''" style="position:relative; top:0; right:0;">Hapus</button>
       </div>
       
-      <label style="font-size: 0.9rem; margin-bottom: 5px; display: block;">Nama Tab (Sheet):</label>
-      <input type="text" id="setup-sheet-input" value="Sheet1" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--bg-color); color: white; margin-bottom: 20px;">
+      <button class="btn-process" id="btn-check-setup-sheets" onclick="checkSetupSheets()" style="margin-bottom: 15px; padding: 10px; font-size: 0.9rem; background-color: var(--border-color); color: var(--text-main); border: 1px solid var(--text-muted);">🔄 Cek Sheet dari Web App URL</button>
+      
+      <label style="font-size: 0.9rem; margin-bottom: 5px; display: block;">Pilih Tab (Sheet):</label>
+      <select id="setup-sheet-input" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--bg-color); color: white; margin-bottom: 20px; outline: none; font-size: 0.95rem; appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FFFFFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 1rem top 50%; background-size: 0.65rem auto;">
+        <option value="Sheet1">Sheet1 (Klik Cek Sheet di atas)</option>
+      </select>
       
       <button class="btn-process" onclick="printSelectedColumns()" style="margin-bottom: 15px;">🖨️ Cetak Kolom yang Sudah Dipilih</button>
       <button class="btn-process" onclick="closeSettings()" style="background-color: #334155; color: white;">🏠 Kembali ke Menu Utama</button>
@@ -798,6 +802,50 @@ function doGet(e) {
       setTimeout(() => {
         toast.style.display = 'none';
       }, 3000);
+    }
+
+    async function checkSetupSheets() {
+      const url = document.getElementById('setup-url-input').value;
+      if (!url) {
+        showToast('Web App URL harus diisi!', 'error');
+        return;
+      }
+      if (url.includes('docs.google.com/spreadsheets')) {
+        showToast('Gunakan Web App URL, bukan URL Spreadsheet biasa.', 'error');
+        return;
+      }
+
+      const btn = document.getElementById('btn-check-setup-sheets');
+      const originalText = btn.innerHTML;
+      btn.innerHTML = 'Mengecek...';
+      btn.disabled = true;
+
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'getSheets' })
+        });
+        const data = await response.json();
+        
+        if (data && data.status === 'success' && data.sheets) {
+          const select = document.getElementById('setup-sheet-input');
+          select.innerHTML = '';
+          data.sheets.forEach(sheet => {
+            const option = document.createElement('option');
+            option.value = sheet;
+            option.textContent = sheet;
+            select.appendChild(option);
+          });
+          showToast('Daftar sheet berhasil dimuat!');
+        } else {
+          showToast('Gagal memuat sheet', 'error');
+        }
+      } catch (err) {
+        showToast('Error koneksi. Pastikan URL benar', 'error');
+      } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+      }
     }
   </script>
 </body>
