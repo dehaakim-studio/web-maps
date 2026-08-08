@@ -510,7 +510,7 @@
       items.forEach(item => {
         const cb = item.querySelector('input[type="checkbox"]');
         const textInput = item.querySelector('input[type="text"]');
-        if (cb && cb.checked && textInput) {
+        if (cb && textInput) {
           keys.push(cb.getAttribute('data-key'));
           headers.push(textInput.value.trim() || cb.getAttribute('data-key'));
         }
@@ -652,7 +652,7 @@ function doGet(e) {
       items.forEach(item => {
         const cb = item.querySelector('input[type="checkbox"]');
         const textInput = item.querySelector('input[type="text"]');
-        if (cb && cb.checked && textInput) {
+        if (cb && textInput) {
           headers.push(textInput.value.trim() || cb.getAttribute('data-key'));
         }
       });
