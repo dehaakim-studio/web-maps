@@ -347,39 +347,39 @@
 
     <!-- Config Section -->
     <div id="config-section">
-      <div class="config-title">Pilih Model Kolom Ceklis</div>
+      <div class="config-title">Daftar Kolom yang Akan Dicetak</div>
       <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 15px;">
-        Centang kolom yang ingin Anda masukkan ke Spreadsheet. (Beberapa kolom wajib disertakan karena merupakan output utama scraper).
+        Berikut adalah daftar kolom yang akan otomatis dimasukkan ke Spreadsheet. Anda dapat menyesuaikan penamaan label (header) jika diperlukan.
       </p>
 
-      <div class="checkbox-grid">
-        <div class="checkbox-item" style="display: flex; align-items: center; gap: 8px;">
-          <input type="checkbox" id="col-name" data-key="Business Name" checked>
-          <input type="text" id="label-name" value="Business Name" class="editable-label">
+      <div class="column-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 25px;">
+        <div class="column-item" style="display: flex; align-items: center; gap: 8px;">
+          <span style="color: var(--primary);">•</span>
+          <input type="text" id="label-name" data-key="Business Name" value="Business Name" class="editable-label">
         </div>
-        <div class="checkbox-item" style="display: flex; align-items: center; gap: 8px;">
-          <input type="checkbox" id="col-address" data-key="Address" checked>
-          <input type="text" id="label-address" value="Address" class="editable-label">
+        <div class="column-item" style="display: flex; align-items: center; gap: 8px;">
+          <span style="color: var(--primary);">•</span>
+          <input type="text" id="label-address" data-key="Address" value="Address" class="editable-label">
         </div>
-        <div class="checkbox-item" style="display: flex; align-items: center; gap: 8px;">
-          <input type="checkbox" id="col-link" data-key="Google Maps URL" checked>
-          <input type="text" id="label-link" value="Google Maps URL" class="editable-label">
+        <div class="column-item" style="display: flex; align-items: center; gap: 8px;">
+          <span style="color: var(--primary);">•</span>
+          <input type="text" id="label-link" data-key="Google Maps URL" value="Google Maps URL" class="editable-label">
         </div>
-        <div class="checkbox-item" style="display: flex; align-items: center; gap: 8px;">
-          <input type="checkbox" id="col-lat" data-key="Latitude" checked>
-          <input type="text" id="label-lat" value="Latitude" class="editable-label">
+        <div class="column-item" style="display: flex; align-items: center; gap: 8px;">
+          <span style="color: var(--primary);">•</span>
+          <input type="text" id="label-lat" data-key="Latitude" value="Latitude" class="editable-label">
         </div>
-        <div class="checkbox-item" style="display: flex; align-items: center; gap: 8px;">
-          <input type="checkbox" id="col-lng" data-key="Longitude" checked>
-          <input type="text" id="label-lng" value="Longitude" class="editable-label">
+        <div class="column-item" style="display: flex; align-items: center; gap: 8px;">
+          <span style="color: var(--primary);">•</span>
+          <input type="text" id="label-lng" data-key="Longitude" value="Longitude" class="editable-label">
         </div>
-        <div class="checkbox-item" style="display: flex; align-items: center; gap: 8px;">
-          <input type="checkbox" id="col-phone" data-key="Nomor Telepon">
-          <input type="text" id="label-phone" value="Nomor Telepon" class="editable-label">
+        <div class="column-item" style="display: flex; align-items: center; gap: 8px;">
+          <span style="color: var(--primary);">•</span>
+          <input type="text" id="label-phone" data-key="Nomor Telepon" value="Nomor Telepon" class="editable-label">
         </div>
-        <div class="checkbox-item" style="display: flex; align-items: center; gap: 8px;">
-          <input type="checkbox" id="col-web" data-key="Website">
-          <input type="text" id="label-web" value="Website" class="editable-label">
+        <div class="column-item" style="display: flex; align-items: center; gap: 8px;">
+          <span style="color: var(--primary);">•</span>
+          <input type="text" id="label-web" data-key="Website" value="Website" class="editable-label">
         </div>
       </div>
 
@@ -505,14 +505,13 @@
       // Gather selected columns
       const headers = [];
       const keys = [];
-      const items = document.querySelectorAll('.checkbox-item');
+      const items = document.querySelectorAll('.column-item');
       
       items.forEach(item => {
-        const cb = item.querySelector('input[type="checkbox"]');
         const textInput = item.querySelector('input[type="text"]');
-        if (cb && textInput) {
-          keys.push(cb.getAttribute('data-key'));
-          headers.push(textInput.value.trim() || cb.getAttribute('data-key'));
+        if (textInput) {
+          keys.push(textInput.getAttribute('data-key'));
+          headers.push(textInput.value.trim() || textInput.getAttribute('data-key'));
         }
       });
 
@@ -648,12 +647,11 @@ function doGet(e) {
       }
       
       const headers = [];
-      const items = document.querySelectorAll('.checkbox-item');
+      const items = document.querySelectorAll('.column-item');
       items.forEach(item => {
-        const cb = item.querySelector('input[type="checkbox"]');
         const textInput = item.querySelector('input[type="text"]');
-        if (cb && textInput) {
-          headers.push(textInput.value.trim() || cb.getAttribute('data-key'));
+        if (textInput) {
+          headers.push(textInput.value.trim() || textInput.getAttribute('data-key'));
         }
       });
 
