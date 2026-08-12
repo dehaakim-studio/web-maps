@@ -723,6 +723,14 @@
         }
       });
 
+      // Dukungan tombol Enter untuk input Google Sheet URL
+      document.getElementById('sheets-url-input').addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          checkSheetsTab();
+        }
+      });
+
 
     });
 
