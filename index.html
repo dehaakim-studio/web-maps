@@ -82,7 +82,9 @@
       margin-bottom: 20px;
     }
 
-    input[type="url"] {
+    input[type="text"],
+    input[type="url"],
+    input[type="password"] {
       flex: 1;
       padding: 12px 16px;
       border-radius: 8px;
@@ -94,7 +96,9 @@
       transition: border-color 0.2s;
     }
 
-    input[type="url"]:focus {
+    input[type="text"]:focus,
+    input[type="url"]:focus,
+    input[type="password"]:focus {
       border-color: var(--primary);
     }
 
