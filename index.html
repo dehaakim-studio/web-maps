@@ -467,7 +467,9 @@
         <select id="select-sheet-name"
           style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--bg-color); color: var(--text-main); font-size: 0.95rem; outline: none; margin-bottom: 8px; appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FFFFFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 1rem top 50%; background-size: 0.65rem auto;">
         </select>
-        <div id="sheets-status-text-bottom" style="font-size: 0.85rem; color: #94a3b8;">✓ 0 tab ditemukan.</div>
+        <div id="sheets-status-text-bottom" style="font-size: 0.85rem; color: #94a3b8; margin-bottom: 15px;">✓ 0 tab ditemukan.</div>
+        
+        <button id="btn-print-columns" class="btn-process" onclick="printStandardColumns()">🖨️ Cetak Seluruh Kolom</button>
       </div>
     </div>
 
@@ -852,7 +854,10 @@
 
         // 3. Reverse Geocoding untuk mendapatkan Alamat Lengkap (Smart Caching + API)
         if (lat !== 'Tidak ditemukan' && lng !== 'Tidak ditemukan') {
-          const cacheKey = `addr_${lat}_${lng}`;
+          // Membulatkan koordinat ke 4 desimal (akurasi ~11 meter) agar lebih hemat limit API
+          const roundedLat = parseFloat(lat).toFixed(4);
+          const roundedLng = parseFloat(lng).toFixed(4);
+          const cacheKey = `addr_${roundedLat}_${roundedLng}`;
           const cachedAddress = localStorage.getItem(cacheKey);
 
           if (cachedAddress) {
@@ -975,6 +980,31 @@
       checkSheetsButtonState();
     }
 
+    async function fetchWithTimeout(resource, options = {}) {
+      const { timeout = 30000 } = options; // Default 30 detik timeout untuk sheet besar
+      
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), timeout);
+      
+      const response = await fetch(resource, {
+        ...options,
+        signal: controller.signal  
+      });
+      clearTimeout(id);
+      
+      return response;
+    }
+
+    function handleAppScriptError(err) {
+      if (err.name === 'AbortError') {
+        return "Koneksi terputus (Timeout). Proses terlalu lama, coba periksa sinyal atau klik sekali lagi.";
+      }
+      if (err.message && (err.message.includes('Unexpected token') || err.message.includes('not valid JSON'))) {
+        return "Akses Ditolak! Silakan Deploy ulang script Anda dan ubah bagian 'Who has access' menjadi 'Anyone' (Siapa saja).";
+      }
+      return err.message;
+    }
+
     function checkSheetsButtonState() {
       // Kept for compatibility with existing calls
     }
@@ -992,12 +1022,14 @@
       }
 
       const btnCheck = document.getElementById('btn-check-sheets');
-      const originalText = btnCheck.innerHTML;
+      if (btnCheck.disabled) return; // Prevent double click
+      
+      const originalText = '<span style="font-size: 1.2em;">🔄</span> Cek Tab / Sheet';
       btnCheck.disabled = true;
       btnCheck.innerHTML = '<span style="font-size: 1.2em;">⏳</span> Mengecek...';
 
       try {
-        const response = await fetch(url, {
+        const response = await fetchWithTimeout(url, {
           method: 'POST',
           mode: 'cors',
           body: JSON.stringify({ action: 'getSheets' })
@@ -1034,9 +1066,67 @@
         }
       } catch (err) {
         console.error(err);
-        showToast('Gagal mengambil daftar sheet: ' + err.message, 'error');
+        showToast('Gagal mengambil daftar sheet: ' + handleAppScriptError(err), 'error');
         btnCheck.disabled = false;
         btnCheck.innerHTML = originalText;
+      }
+    }
+
+    async function printStandardColumns() {
+      const url = localStorage.getItem('sheets_webapp_url');
+      const sheetName = document.getElementById('select-sheet-name').value;
+      
+      if (!url) {
+        showToast('Web App URL belum diisi!', 'error');
+        return;
+      }
+      if (!sheetName) {
+        showToast('Tab Tujuan belum dipilih!', 'error');
+        return;
+      }
+
+      const btn = document.getElementById('btn-print-columns');
+      if (btn.disabled) return; // Prevent double click
+      
+      const originalText = '🖨️ Cetak Seluruh Kolom';
+      btn.innerHTML = '⏳ Sedang Mencetak...';
+      btn.disabled = true;
+
+      // Ambil custom headers dari pengaturan jika ada, jika tidak pakai standar
+      let headersToPrint = ['Place Name', 'Address', 'Google Maps URL', 'Latitude', 'Longitude'];
+      try {
+        const customHeadersStr = localStorage.getItem('custom_headers');
+        if (customHeadersStr) {
+          const parsed = JSON.parse(customHeadersStr);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            headersToPrint = parsed;
+          }
+        }
+      } catch(e) {}
+
+      try {
+        const response = await fetchWithTimeout(url, {
+          method: 'POST',
+          mode: 'cors',
+          body: JSON.stringify({
+            action: 'createHeaders',
+            sheetName: sheetName,
+            headers: headersToPrint
+          })
+        });
+
+        const result = await response.json();
+        if (result && result.status === 'success') {
+          showToast('✅ Berhasil! Header kolom telah dicetak di tab: ' + sheetName);
+        } else {
+          throw new Error(result.message || 'Gagal mencetak kolom');
+        }
+      } catch (err) {
+        console.error(err);
+        showToast('Gagal mencetak kolom: ' + handleAppScriptError(err), 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
       }
     }
 
@@ -1061,7 +1151,9 @@
       }
 
       const btnConfirm = document.getElementById('btn-confirm-send');
-      const originalText = btnConfirm.textContent;
+      if (btnConfirm.disabled) return; // Prevent double click
+      
+      const originalText = 'Kirim Data ke Sheet';
       btnConfirm.disabled = true;
       btnConfirm.textContent = 'Mengirim...';
 
@@ -1073,16 +1165,30 @@
         document.getElementById('resLng').textContent
       ];
 
+      const resName = document.getElementById('resName').textContent;
+      const resAddress = document.getElementById('resAddress').textContent;
+      const resLink = document.getElementById('resLink').textContent;
+      const resLat = document.getElementById('resLat').textContent;
+      const resLng = document.getElementById('resLng').textContent;
+
       const dataObj = {
-        "Business Name": document.getElementById('resName').textContent,
-        "Address": document.getElementById('resAddress').textContent,
-        "Google Maps URL": document.getElementById('resLink').textContent,
-        "Latitude": document.getElementById('resLat').textContent,
-        "Longitude": document.getElementById('resLng').textContent
+        "Business Name": resName,
+        "Place Name": resName,
+        "Nama Tempat": resName,
+        "Nama Lokasi": resName,
+        "Address": resAddress,
+        "Alamat": resAddress,
+        "Google Maps URL": resLink,
+        "Link Gmaps": resLink,
+        "URL": resLink,
+        "Latitude": resLat,
+        "Lat": resLat,
+        "Longitude": resLng,
+        "Lng": resLng
       };
 
       try {
-        const response = await fetch(url, {
+        const response = await fetchWithTimeout(url, {
           method: 'POST',
           mode: 'cors',
           body: JSON.stringify({
@@ -1101,7 +1207,7 @@
         }
       } catch (err) {
         console.error(err);
-        showToast('Gagal mengirim data: ' + err.message, 'error');
+        showToast('Gagal mengirim data: ' + handleAppScriptError(err), 'error');
       } finally {
         btnConfirm.disabled = false;
         btnConfirm.textContent = originalText;
