@@ -737,11 +737,20 @@
       // Auto-append /exec jika tertinggal
       document.getElementById('sheets-url-input').addEventListener('blur', function (e) {
         let url = this.value.trim();
-        if (url.includes('script.google.com/macros/') && !url.endsWith('/exec') && !url.endsWith('/dev')) {
+        if (url.includes('script.google.com/macros/')) {
+          // Buang trailing slash
           if (url.endsWith('/')) url = url.slice(0, -1);
-          url = url + '/exec';
-          this.value = url;
-          autoSaveSheetsUrl();
+          // Jika tidak berakhiran /exec atau /dev (mengabaikan query params jika ada)
+          const baseUrl = url.split('?')[0];
+          if (!baseUrl.endsWith('/exec') && !baseUrl.endsWith('/dev')) {
+            url = baseUrl + '/exec';
+            this.value = url;
+            autoSaveSheetsUrl();
+          } else if (this.value !== url) {
+            // Update jika hanya menghapus trailing slash
+            this.value = url;
+            autoSaveSheetsUrl();
+          }
         }
       });
 
@@ -978,9 +987,12 @@
         let text = await navigator.clipboard.readText();
         if (text) {
           text = text.trim();
-          if (text.includes('script.google.com/macros/') && !text.endsWith('/exec') && !text.endsWith('/dev')) {
+          if (text.includes('script.google.com/macros/')) {
             if (text.endsWith('/')) text = text.slice(0, -1);
-            text = text + '/exec';
+            const baseUrl = text.split('?')[0];
+            if (!baseUrl.endsWith('/exec') && !baseUrl.endsWith('/dev')) {
+              text = baseUrl + '/exec';
+            }
           }
           document.getElementById('sheets-url-input').value = text;
           autoSaveSheetsUrl();
@@ -1016,7 +1028,7 @@
     }
 
     async function fetchWithTimeout(resource, options = {}) {
-      const { timeout = 30000 } = options; // Default 30 detik timeout untuk sheet besar
+      const { timeout = 60000 } = options; // Default 60 detik timeout
       
       const controller = new AbortController();
       const id = setTimeout(() => controller.abort(), timeout);
