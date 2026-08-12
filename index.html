@@ -1188,6 +1188,8 @@
       let successCount = 0;
       let errorCount = 0;
 
+      const delay = ms => new Promise(res => setTimeout(res, ms));
+
       for (let i = 0; i < options.length; i++) {
         const sheetName = options[i].value;
         try {
@@ -1201,7 +1203,7 @@
               sheetName: sheetName,
               headers: headersToPrint
             }),
-            timeout: 15000 // 15s per sheet
+            timeout: 30000 // 30s per sheet untuk menghindari timeout Google
           });
           const result = await response.json();
           if (result && result.status === 'success') {
@@ -1212,6 +1214,12 @@
         } catch (err) {
           console.warn(`Gagal mencetak tab ${sheetName}:`, err);
           errorCount++;
+        }
+        
+        // Beri jeda 1.5 detik antar request agar Google Apps Script tidak error limit
+        if (i < options.length - 1) {
+          btnAll.innerHTML = `⏳ Jeda... (${i + 1}/${options.length})`;
+          await delay(1500);
         }
       }
 
