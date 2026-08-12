@@ -1213,6 +1213,36 @@
         }
       } catch(e) {}
 
+      try {
+        btnAll.innerHTML = `⏳ Memproses Semua Tab (Cepat)...`;
+        const response = await fetchWithTimeout(url, {
+          method: 'POST',
+          mode: 'cors',
+          body: JSON.stringify({
+            action: 'createHeadersAll',
+            headers: headersToPrint
+          }),
+          timeout: 60000
+        });
+        const result = await response.json();
+        
+        if (result && result.status === 'success') {
+          btnAll.disabled = false;
+          btnAll.innerHTML = originalText;
+          btnSingle.disabled = false;
+          showToast(`✅ Selesai! Berhasil mencetak kolom ke seluruh ${options.length} tab dalam sekejap.`);
+          return; // Berhasil, keluar dari fungsi
+        } else if (result && result.message === 'Unknown error') {
+          // Fallback ke mode lambat jika script belum di-update
+          console.warn("Script lama terdeteksi, beralih ke mode cetak satu-persatu.");
+        } else {
+          throw new Error(result.message || 'Unknown error');
+        }
+      } catch (err) {
+        console.error("Gagal mode cepat:", err);
+      }
+
+      // === FALLBACK MODE LAMBAT ===
       let successCount = 0;
       let errorCount = 0;
 
@@ -1221,7 +1251,7 @@
       for (let i = 0; i < options.length; i++) {
         const sheetName = options[i].value;
         try {
-          btnAll.innerHTML = `⏳ Memproses: ${i + 1}/${options.length}...`;
+          btnAll.innerHTML = `⏳ Mode Lambat: ${i + 1}/${options.length}...`;
           
           const response = await fetchWithTimeout(url, {
             method: 'POST',
@@ -1231,7 +1261,7 @@
               sheetName: sheetName,
               headers: headersToPrint
             }),
-            timeout: 30000 // 30s per sheet untuk menghindari timeout Google
+            timeout: 30000 // 30s per sheet
           });
           const result = await response.json();
           if (result && result.status === 'success') {
@@ -1244,7 +1274,7 @@
           errorCount++;
         }
         
-        // Beri jeda 1.5 detik antar request agar Google Apps Script tidak error limit
+        // Beri jeda 1.5 detik antar request
         if (i < options.length - 1) {
           btnAll.innerHTML = `⏳ Jeda... (${i + 1}/${options.length})`;
           await delay(1500);
@@ -1256,9 +1286,9 @@
       btnSingle.disabled = false;
       
       if (errorCount === 0) {
-        showToast(`✅ Selesai! Berhasil mencetak kolom ke seluruh ${successCount} tab.`);
+        showToast(`✅ Selesai Mode Lambat! Berhasil mencetak ke ${successCount} tab.`);
       } else {
-        showToast(`⚠️ Selesai! Berhasil: ${successCount} tab. Gagal: ${errorCount} tab.`, 'error');
+        showToast(`⚠️ Selesai! Berhasil: ${successCount} tab. Gagal: ${errorCount} tab. Update script Anda untuk menghindari error ini.`, 'error');
       }
     }
 

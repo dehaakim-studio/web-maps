@@ -743,6 +743,22 @@ function doGet(e) {
       
       output = { status: 'success', message: 'Kolom berhasil dicetak' };
     }
+    else if (action === 'createHeadersAll') {
+      var headers = payload.headers;
+      var sheets = ss.getSheets();
+      
+      for (var i = 0; i < sheets.length; i++) {
+        var sheet = sheets[i];
+        if (sheet.getLastRow() === 0) {
+          sheet.appendRow(headers);
+          sheet.getRange(1, 1, 1, headers.length).setFontWeight("bold").setBackground("#e0e0e0");
+        } else {
+          sheet.getRange(1, 1, 1, headers.length).setValues([headers]).setFontWeight("bold").setBackground("#e0e0e0");
+        }
+      }
+      
+      output = { status: 'success', message: 'Kolom berhasil dicetak di semua tab' };
+    }
   } catch (error) {
     output = { status: 'error', message: error.toString() };
   }
