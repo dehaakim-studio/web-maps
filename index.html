@@ -473,7 +473,10 @@
         </select>
         <div id="sheets-status-text-bottom" style="font-size: 0.85rem; color: #94a3b8; margin-bottom: 15px;">✓ 0 tab ditemukan.</div>
         
-        <button id="btn-print-columns" class="btn-process" onclick="printStandardColumns()">🖨️ Cetak Seluruh Kolom</button>
+        <div style="display: flex; gap: 8px;">
+          <button id="btn-print-columns" class="btn-process" onclick="printStandardColumns()" style="flex: 1; padding: 10px; font-size: 0.9rem;">🖨️ Cetak di Tab Ini</button>
+          <button id="btn-print-all-columns" class="btn-process" onclick="printToAllTabs()" style="flex: 1; padding: 10px; font-size: 0.9rem; background-color: #6366f1;">📑 Cetak ke Semua Tab</button>
+        </div>
       </div>
     </div>
 
@@ -1143,6 +1146,83 @@
       } finally {
         btn.disabled = false;
         btn.innerHTML = originalText;
+      }
+    }
+
+    async function printToAllTabs() {
+      const url = localStorage.getItem('sheets_webapp_url');
+      const select = document.getElementById('select-sheet-name');
+      const options = Array.from(select.options);
+      
+      if (!url) {
+        showToast('Web App URL belum diisi!', 'error');
+        return;
+      }
+      if (options.length === 0) {
+        showToast('Tidak ada tab yang ditemukan!', 'error');
+        return;
+      }
+
+      const confirmPrint = confirm(`Anda yakin ingin mencetak kolom ke SEMUA ${options.length} tab sekaligus?\n\n(Proses ini mungkin membutuhkan waktu 1-2 menit tergantung jumlah tab)`);
+      if (!confirmPrint) return;
+
+      const btnAll = document.getElementById('btn-print-all-columns');
+      const btnSingle = document.getElementById('btn-print-columns');
+      if (btnAll.disabled) return;
+      
+      const originalText = '📑 Cetak ke Semua Tab';
+      btnAll.innerHTML = `⏳ 0/${options.length}`;
+      btnAll.disabled = true;
+      btnSingle.disabled = true;
+
+      // Ambil custom headers
+      let headersToPrint = ['Nama Tempat', 'Alamat Lengkap', 'Link Google Maps', 'Latitude', 'Longitude'];
+      try {
+        const customHeadersStr = localStorage.getItem('custom_headers');
+        if (customHeadersStr) {
+          const parsed = JSON.parse(customHeadersStr);
+          if (Array.isArray(parsed) && parsed.length > 0) headersToPrint = parsed;
+        }
+      } catch(e) {}
+
+      let successCount = 0;
+      let errorCount = 0;
+
+      for (let i = 0; i < options.length; i++) {
+        const sheetName = options[i].value;
+        try {
+          btnAll.innerHTML = `⏳ Memproses: ${i + 1}/${options.length}...`;
+          
+          const response = await fetchWithTimeout(url, {
+            method: 'POST',
+            mode: 'cors',
+            body: JSON.stringify({
+              action: 'createHeaders',
+              sheetName: sheetName,
+              headers: headersToPrint
+            }),
+            timeout: 15000 // 15s per sheet
+          });
+          const result = await response.json();
+          if (result && result.status === 'success') {
+            successCount++;
+          } else {
+            errorCount++;
+          }
+        } catch (err) {
+          console.warn(`Gagal mencetak tab ${sheetName}:`, err);
+          errorCount++;
+        }
+      }
+
+      btnAll.disabled = false;
+      btnAll.innerHTML = originalText;
+      btnSingle.disabled = false;
+      
+      if (errorCount === 0) {
+        showToast(`✅ Selesai! Berhasil mencetak kolom ke seluruh ${successCount} tab.`);
+      } else {
+        showToast(`⚠️ Selesai! Berhasil: ${successCount} tab. Gagal: ${errorCount} tab.`, 'error');
       }
     }
 
