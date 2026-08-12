@@ -707,7 +707,11 @@
 
 
 
-      // Dukungan tombol Enter untuk input API Key
+      // Dukungan tombol Enter dan auto-save untuk input API Key
+      document.getElementById('apiKey').addEventListener('input', function(e) {
+        localStorage.setItem('gmaps_api_key', this.value.trim());
+      });
+      
       document.getElementById('apiKey').addEventListener('keydown', function (e) {
         if (e.key === 'Enter') {
           e.preventDefault();
@@ -767,7 +771,7 @@
         const text = await navigator.clipboard.readText();
         if (text) {
           document.getElementById('apiKey').value = text;
-          localStorage.setItem('gmaps_api_key', text);
+          localStorage.setItem('gmaps_api_key', text.trim());
           showToast('API Key berhasil di-paste dan disimpan!');
         }
       } catch (err) {
