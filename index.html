@@ -1365,7 +1365,7 @@
 
         const result = await response.json();
         if (result && result.status === 'success') {
-          showToast('Data berhasil dikirim ke Spreadsheet!');
+          showToast('✅ Status Berhasil! Data telah masuk ke spreadsheet target.');
         } else {
           throw new Error(result.message || 'Gagal mengirim data');
         }
